@@ -198,6 +198,7 @@ void startSorter(DIR* dr, char * path, char * outputPath){
 	while( (de = readdir(dr)) != NULL){
 		char* currentName = de->d_name; //getting name of directory/file
 		char *dot = strrchr(currentName, '.');
+		printf("this is dot %s\n", dot);
 		printf("Checking   %s\n", currentName);
 		if(dot && !strcmp(dot,".csv")){
 			printf("Found a csv file %s \n", currentName);
@@ -205,6 +206,8 @@ void startSorter(DIR* dr, char * path, char * outputPath){
 			if(sortedAlready!=NULL){
 			continue;
 			}
+			char * ActualName = strdup(currentName); //copy the current name
+			*dot = '\0'; //cuts off current name at the dot to set up sorted final name
 
 
 
@@ -216,8 +219,11 @@ void startSorter(DIR* dr, char * path, char * outputPath){
 				sortedFileName[0] = '\0';
 				strcat(sortedFileName,outputPath);
 				strcat(sortedFileName,"/");
-				strcat(sortedFileName, "sorted-");
-				strcat(sortedFileName, currentName);	
+				strcat(sortedFileName, currentName);
+				strcat(sortedFileName, "-sorted-");
+				strcat(sortedFileName, column);	
+				strcat(sortedFileName, ".csv");
+					
 				printf("_________Current Name %s \n", currentName);
 				printf("__________sorted file name %s \n", sortedFileName);
 
@@ -227,7 +233,7 @@ void startSorter(DIR* dr, char * path, char * outputPath){
 					char  *filePAName = (char*)malloc(2 + strlen(path) + strlen(currentName));
             		strcpy(filePAName, path);
             		strcat(filePAName, "/");
-            		strcat(filePAName, currentName);
+            		strcat(filePAName, ActualName);
 					//
 			printf("this is filePAN name %s \n",filePAName);
 								//Test Code
@@ -328,13 +334,13 @@ void startSorter(DIR* dr, char * path, char * outputPath){
 					startSorter(subDirectoryPtr, filePathAndName,outputPath);
 					printf("Done sorting file %s  PID %d is getting killed \n", currentName , getpid());
 					kill(getpid(), SIGKILL); //exit instead  
-					//problem with putting all files into output dir
+					
 				}
 			
 				
 				
 				}
-				//closedir(subDirectoryPtr);
+			//	closedir(subDirectoryPtr);
 			}
 		}
 	}
@@ -343,6 +349,7 @@ void startSorter(DIR* dr, char * path, char * outputPath){
 int main (int argc, char * argv[]){
 	char startDir[] = ".";
 	char outputDir[] = ".";
+	int cflag =-1; //find cflag 
 	//char buff[1024];
 	if(argc < 3){
 		printf("There is an input missing, try again\n");
@@ -353,7 +360,10 @@ int main (int argc, char * argv[]){
 	for(i =0; i<argc; i++){
 		printf("this is argv %s\n", argv[i]);
 		if(strcmp(argv[i],"-c")==0){
-			printf("HELLLOOO\n");
+			if(i == argc){
+				//no more args ==ERROR
+			}
+		//	printf("HELLLOOO\n");
 			column = argv[i + 1];
 
 		}
