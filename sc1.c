@@ -4,7 +4,7 @@
 #include <string.h>
 #include "simpleCSVsorter.h"
 #include "mergesort.c"
-
+#include <sys/wait.h>
 
 //B's stuff
 #include <signal.h>
@@ -200,22 +200,23 @@ void startSorter(DIR* dr, char * path, char * outputPath){
 		char *dot = strrchr(currentName, '.');
 		printf("this is dot %s\n", dot);
 		printf("Checking   %s\n", currentName);
-		if(dot && !strcmp(dot,".csv")){
+		if(dot && !strcmp(dot,".csv")) { //csv file
 			printf("Found a csv file %s \n", currentName);
 			char * sortedAlready = strstr(currentName,"sorted");
 			if(sortedAlready!=NULL){
 			continue;
 			}
 			char * ActualName = strdup(currentName); //copy the current name
+			if(dot){
 			*dot = '\0'; //cuts off current name at the dot to set up sorted final name
-
+			}
 
 
 	
 			int pid = fork();
 			if(pid==0){	
 			char* sortedFileName;
-			if((sortedFileName = malloc ( strlen(currentName ) + strlen("sorted-") +1))   != NULL){
+			if((sortedFileName = malloc ( strlen(outputPath) +strlen(ActualName ) + strlen("-sorted-")+4))   != NULL){
 				sortedFileName[0] = '\0';
 				strcat(sortedFileName,outputPath);
 				strcat(sortedFileName,"/");
@@ -223,6 +224,7 @@ void startSorter(DIR* dr, char * path, char * outputPath){
 				strcat(sortedFileName, "-sorted-");
 				strcat(sortedFileName, column);	
 				strcat(sortedFileName, ".csv");
+				
 					
 				printf("_________Current Name %s \n", currentName);
 				printf("__________sorted file name %s \n", sortedFileName);
@@ -230,17 +232,20 @@ void startSorter(DIR* dr, char * path, char * outputPath){
 				//inside of this if is where the sorting method should be called
 					//
 
-					char  *filePAName = (char*)malloc(2 + strlen(path) + strlen(currentName));
+			char  *filePAName = (char*)malloc(3 + strlen(path) + strlen(ActualName));
             		strcpy(filePAName, path);
             		strcat(filePAName, "/");
             		strcat(filePAName, ActualName);
 					//
-			printf("this is filePAN name %s \n",filePAName);
+			printf("this is filePAN name [%s] \n",filePAName);
 								//Test Code
 				FILE *unsortedFilePtr;
 				unsortedFilePtr = fopen(filePAName,"r");
 				if(unsortedFilePtr == NULL){
-					printf("Could Not open %s for %s \n", currentName,sortedFileName);
+					printf("Could Not open %s for %s \n", currentName,filePAName);
+				}
+				else{
+					printf("can open read file\n");
 				}
 				//first category
 				char * categories=NULL; //buffer to hold the first row which are the column names
@@ -257,7 +262,7 @@ void startSorter(DIR* dr, char * path, char * outputPath){
 				printf("First Row %s  Column Search %s Column Index %d\n", categoriesdup,column, col );
 				
 				if(match==-1){
-					printf("NOOOOOOOOOOOOOOOOOOOOOOOO no match %s \n", filePAName);
+					printf("NOOOOOOOOOOOOOOOOOOOOOOOO no match %s \n", filePAName); //might need to print stderr and cont
 					continue;
 				}
 				else{
@@ -336,6 +341,8 @@ void startSorter(DIR* dr, char * path, char * outputPath){
 					kill(getpid(), SIGKILL); //exit instead  
 					
 				}
+				else{ //wait and add to values
+				}
 			
 				
 				
@@ -351,6 +358,7 @@ int main (int argc, char * argv[]){
 	char outputDir[] = ".";
 	int cflag =-1; //find cflag 
 	//char buff[1024];
+	printf("this is argc %d\n",argc);
 	if(argc < 3){
 		printf("There is an input missing, try again\n");
 		return -1;	
@@ -360,14 +368,23 @@ int main (int argc, char * argv[]){
 	for(i =0; i<argc; i++){
 		printf("this is argv %s\n", argv[i]);
 		if(strcmp(argv[i],"-c")==0){
-			if(i == argc){
-				//no more args ==ERROR
+			cflag = 1;
+		
+			if(i == argc-1){
+				printf("There are no more arguments ");
+				return -1;
 			}
+	
 		//	printf("HELLLOOO\n");
 			column = argv[i + 1];
 
 		}
 		else if(strcmp(argv[i],"-d")==0){
+			if(i == argc-1){
+				printf("There are no more arguments\n ");
+				return -1;
+			}
+			
 			strcat(startDir,"/");
 			strcat(startDir, argv[i+1]);
 			DIR * dir= opendir(startDir);
@@ -376,7 +393,7 @@ int main (int argc, char * argv[]){
 			}
 			else{
 				//directory doesn't exist
-				perror("Error Start Directory does not exist ");
+				perror("Error Start Directory does not exist\n ");
 				return -1;
 			}
 			
@@ -384,6 +401,10 @@ int main (int argc, char * argv[]){
 
 		}
 		else if(strcmp(argv[i],"-o")==0){
+			if(i == argc-1){
+				printf("There are no more arguments\n ");
+				return -1;
+			}
 			strcat(outputDir,"/");
 			strcat(outputDir,argv[i+1]);
 			DIR * dir= opendir(outputDir);
@@ -400,15 +421,17 @@ int main (int argc, char * argv[]){
 		}
 	}
 
-	printf("this is column %s\n", column);
-	printf("this is startdir %s\n", startDir);
-	printf("this is outputdir %s\n", outputDir);
-	size_t size = 0;	
+	if(cflag == -1){
+		perror("NO CFLAG INPUTTED ");
+	}
 
-	//column = argv[2]; //user inputted value that will be sorted on - global var
+	//printf("this is column %s\n", column);
+	//printf("this is startdir %s\n", startDir);
+	//printf("this is outputdir %s\n", outputDir);
+	size_t size = 0;	
 	struct dirent *de;
-	
-	DIR* dr;// = opendir(".");
+	DIR* dr;
+	// = opendir(".");
 	//dr = opendir(".");
 	//startSorter(dr, ".");	
 	dr = opendir(startDir);
